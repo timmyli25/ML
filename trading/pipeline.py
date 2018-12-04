@@ -58,5 +58,24 @@ df = pd.read_csv('ES_master_events.csv')
 df['clean_headlines'] = news_pipeline(df['Headline'])
 df['event'] = np.where(df['AbsChange'] >= 50,1,0)
 X_train, X_test, y_train, y_test = train_test_split(df['clean_headlines'],df['event'])
-#test =clean_single_headline('U.S government', bad_words, wnl)
-#headlines = news_pipeline(df['Headline'])
+
+vectorizer = CountVectorizer(ngram_range=(1, 2), max_features=500)
+#vectorizer = TfidfVectorizer()
+train_x_binaries = vectorizer.fit_transform(X_train).toarray()
+#full_test_x_binaries = vectorizer.transform(full_test_x[:5000]).toarray()
+test_x_binaries = vectorizer.transform(X_test).toarray()
+clf = BernoulliNB()
+clf.fit(train_x_binaries,y_train)
+score = clf.score(test_x_binaries, y_test)
+
+def score_headlines(headlines, labels, vectorizer, clf):
+    headlines = news_pipeline(headlines)
+    binaries = vectorizer.transform(headlines).toarray()
+    score = clf.score(binaries, headlines)
+    return score
+
+positive_df = df[df['event'] == 1]
+positive_headlines = positive_df['Headline']
+positive_labels = positive_df['event']
+
+score = score_headlines(positive_headlines, positive_labels, vectorizer, clf)
