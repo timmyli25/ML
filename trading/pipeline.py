@@ -54,28 +54,71 @@ def clean_single_headline(headline, bad_words,lemmatizer):
     headline = split_lower_replace(headline, bad_words, lemmatizer)
     return headline
 
-df = pd.read_csv('ES_master_events.csv')
-df['clean_headlines'] = news_pipeline(df['Headline'])
-df['event'] = np.where(df['AbsChange'] >= 50,1,0)
-X_train, X_test, y_train, y_test = train_test_split(df['clean_headlines'],df['event'])
-
-vectorizer = CountVectorizer(ngram_range=(1, 2), max_features=500)
-#vectorizer = TfidfVectorizer()
-train_x_binaries = vectorizer.fit_transform(X_train).toarray()
-#full_test_x_binaries = vectorizer.transform(full_test_x[:5000]).toarray()
-test_x_binaries = vectorizer.transform(X_test).toarray()
-clf = BernoulliNB()
-clf.fit(train_x_binaries,y_train)
-score = clf.score(test_x_binaries, y_test)
-
 def score_headlines(headlines, labels, vectorizer, clf):
     headlines = news_pipeline(headlines)
     binaries = vectorizer.transform(headlines).toarray()
     score = clf.score(binaries, headlines)
     return score
 
+
+def get_predictions(headlines, vectortizer, clf):
+    headlines = news_pipeline(headlines)
+    binaries = vectorizer.transform(headlines).toarray()
+    predictions = clf.predict(binaries)
+    return predictions
+
+def show_positives(headlines,vectorizer, clf):
+    for headline in headlines:
+        headlinex = news_pipeline([headline])
+        binary = vectorizer.transform(headlinex).toarray()
+        prediction = clf.predict(binary)[0]
+        if prediction ==1:
+            print(headline)
+'''
+df = pd.read_csv('ES_master_events.csv')
+df['event'] = np.where(df['AbsChange'] >= 50,1,0)
+
 positive_df = df[df['event'] == 1]
 positive_headlines = positive_df['Headline']
 positive_labels = positive_df['event']
 
-score = score_headlines(positive_headlines, positive_labels, vectorizer, clf)
+negative_df = df[df['event'] == 0]
+negative_df = negative_df.sample(3 * positive_df.shape[0])
+
+total_df = pd.concat([positive_df,negative_df])
+total_df['clean_headlines'] = news_pipeline(total_df['Headline'])
+
+X_train, X_test, y_train, y_test = train_test_split(total_df['clean_headlines'],total_df['event'])
+
+vectorizer = CountVectorizer(ngram_range=(1, 2), max_features=15000)
+train_x_binaries = vectorizer.fit_transform(X_train).toarray()
+test_x_binaries = vectorizer.transform(X_test).toarray()
+clf = BernoulliNB()
+clf.fit(train_x_binaries,y_train)
+
+score1 = clf.score(test_x_binaries, y_test)
+
+x = news_pipeline(positive_headlines)
+x1 = binaries = vectorizer.transform(x).toarray()
+score2 = clf.score(x1, positive_labels)
+
+print("Total score: {}".format(score1))
+print("Positive score: {}".format(score2))
+
+fake_headlines = ['uk may says brexit deal will be reached tomorrow',
+                  'trump says china deal will be finished',
+                  'brexit',
+                  'trump fires fed president powell',
+                  'fed president powell resigns',
+                  'theresa may resigns',
+                  'us commerce sec ross us still plans china tariff increase'
+                  'matt hazard has decided to lower interest rates',
+                  'brennen houge has decided to lower interest rates',
+                  'brennen thinks es is going to zero',
+                  'little does he know he is wrong',
+                  'the pope has been assassinated',
+                  'warren buffet says equity markets are overvalued']
+fake_headlines = news_pipeline(fake_headlines)
+fake_headlines_binary = vectorizer.transform(fake_headlines).toarray()
+print(clf.predict(fake_headlines_binary))
+'''
