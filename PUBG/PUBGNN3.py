@@ -15,9 +15,6 @@ tf.logging.set_verbosity(tf.logging.INFO)
 
 # Our application logic will be added here
 
-
-
-
 def simpleNN(features, labels, mode):
     '''
     Model function for NN.
@@ -104,6 +101,7 @@ def main(unused_argv):
       x={"x": test_data, 'id':test_id},
       num_epochs=1,
       shuffle=False)
+
   predict_results = mnist_classifier.predict(input_fn=predict_input_fn,
                                             yield_single_examples=True)
   #spredict_results = yield(predict_results)

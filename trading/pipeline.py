@@ -41,6 +41,8 @@ def news_pipeline(headlines):
     Takes an array of headlines and applies the filtering process to standardize it.
     Inputs-
         headlines(np.array)- the collection of headlines
+    Returns-
+        headlines(np.array)- collection of headlines with preprocessing applied.
     '''
     bad_words = set(stopwords.words('english'))
     wnl = WordNetLemmatizer()
@@ -67,58 +69,116 @@ def get_predictions(headlines, vectortizer, clf):
     predictions = clf.predict(binaries)
     return predictions
 
-def show_positives(headlines,vectorizer, clf):
+def show_predictions(headlines,vectorizer, clf, prediction_value):
     for headline in headlines:
         headlinex = news_pipeline([headline])
         binary = vectorizer.transform(headlinex).toarray()
         prediction = clf.predict(binary)[0]
-        if prediction ==1:
+        if prediction == prediction_value:
             print(headline)
-'''
-df = pd.read_csv('ES_master_events.csv')
-df['event'] = np.where(df['AbsChange'] >= 50,1,0)
 
-positive_df = df[df['event'] == 1]
-positive_headlines = positive_df['Headline']
-positive_labels = positive_df['event']
+def find_bad_errors(headlines, labels, vectorizer, clf):
+    '''
+    Utilities which will find the headlines which predict the WRONG direction.
+    '''
+    assert len(headlines) == len(labels), "Length of predictions and labels not the same."
+    labels = list(labels)
+    clean_headlines = news_pipeline(headlines)
+    binaries = vectorizer.transform(clean_headlines).toarray()
+    predictions = clf.predict(binaries)
+    bad_errors = 0
+    ok_errors = 0
+    good = 0
+    prediction_dic = {-1:0,0:0,1:0}
+    for n in range(len(predictions)):
+        prediction = predictions[n]
+        label = labels[n]
+        prediction_dic[prediction] += 1
+        if prediction == 1 and label == -1:
+            print(headlines.iloc[n], prediction, label)
+            bad_errors += 1
+        elif prediction == -1 and label == 1:
+            print(headlines.iloc[n], prediction, label)
+            bad_errors += 1
+        elif prediction != label:
+            ok_errors += 1
+        elif prediction == 1 and label == 1:
+            good += 1
+        elif prediction == -1 and label == -1:
+            good += 1
+    print("{} good predictions made.".format(good))
+    print("{} bad errors made.".format(bad_errors))
+    print("{} ok errors made.".format(ok_errors))
+    print(prediction_dic)
 
-negative_df = df[df['event'] == 0]
-negative_df = negative_df.sample(3 * positive_df.shape[0])
+def find_good_predictions(headlines, labels, vectorizer, clf):
+    '''
+    Utilities which will find the headlines which predict the WRONG direction.
+    '''
+    assert len(headlines) == len(labels), "Length of predictions and labels not the same."
+    labels = list(labels)
+    clean_headlines = news_pipeline(headlines)
+    binaries = vectorizer.transform(clean_headlines).toarray()
+    predictions = clf.predict(binaries)
+    count = 0
+    for n in range(len(predictions)):
+        prediction = predictions[n]
+        label = labels[n]
+        if prediction == 1 and label == 1:
+            print(headlines.iloc[n], prediction, label)
+            count += 1
+        elif prediction == -1 and label == -1:
+            print(headlines.iloc[n], prediction, label)
+            count += 1
+    print("{} Good Predictions made.".format(count))
 
-total_df = pd.concat([positive_df,negative_df])
-total_df['clean_headlines'] = news_pipeline(total_df['Headline'])
 
-X_train, X_test, y_train, y_test = train_test_split(total_df['clean_headlines'],total_df['event'])
 
-vectorizer = CountVectorizer(ngram_range=(1, 2), max_features=15000)
-train_x_binaries = vectorizer.fit_transform(X_train).toarray()
-test_x_binaries = vectorizer.transform(X_test).toarray()
-clf = BernoulliNB()
-clf.fit(train_x_binaries,y_train)
+def test():
 
-score1 = clf.score(test_x_binaries, y_test)
+    df = pd.read_csv('ES_master_events.csv')
+    df['event'] = np.where(df['AbsChange'] >= 50,1,0)
 
-x = news_pipeline(positive_headlines)
-x1 = binaries = vectorizer.transform(x).toarray()
-score2 = clf.score(x1, positive_labels)
+    positive_df = df[df['event'] == 1]
+    positive_headlines = positive_df['Headline']
+    positive_labels = positive_df['event']
 
-print("Total score: {}".format(score1))
-print("Positive score: {}".format(score2))
+    negative_df = df[df['event'] == 0]
+    negative_df = negative_df.sample( positive_df.shape[0])
 
-fake_headlines = ['uk may says brexit deal will be reached tomorrow',
-                  'trump says china deal will be finished',
-                  'brexit',
-                  'trump fires fed president powell',
-                  'fed president powell resigns',
-                  'theresa may resigns',
-                  'us commerce sec ross us still plans china tariff increase'
-                  'matt hazard has decided to lower interest rates',
-                  'brennen houge has decided to lower interest rates',
-                  'brennen thinks es is going to zero',
-                  'little does he know he is wrong',
-                  'the pope has been assassinated',
-                  'warren buffet says equity markets are overvalued']
-fake_headlines = news_pipeline(fake_headlines)
-fake_headlines_binary = vectorizer.transform(fake_headlines).toarray()
-print(clf.predict(fake_headlines_binary))
-'''
+    total_df = pd.concat([positive_df,negative_df])
+    total_df['clean_headlines'] = news_pipeline(total_df['Headline'])
+
+    X_train, X_test, y_train, y_test = train_test_split(total_df['clean_headlines'],total_df['event'])
+
+    vectorizer = CountVectorizer(ngram_range=(1, 2), max_features=15000)
+    train_x_binaries = vectorizer.fit_transform(X_train).toarray()
+    test_x_binaries = vectorizer.transform(X_test).toarray()
+    clf = BernoulliNB()
+    clf.fit(train_x_binaries,y_train)
+
+    score1 = clf.score(test_x_binaries, y_test)
+
+    x = news_pipeline(positive_headlines)
+    x1 = binaries = vectorizer.transform(x).toarray()
+    score2 = clf.score(x1, positive_labels)
+
+    print("Total score: {}".format(score1))
+    print("Positive score: {}".format(score2))
+
+    fake_headlines = ['uk may says brexit deal will be reached tomorrow',
+                      'trump says china deal will be finished',
+                      'brexit',
+                      'trump fires fed president powell',
+                      'fed president powell resigns',
+                      'theresa may resigns',
+                      'us commerce sec ross us still plans china tariff increase'
+                      'matt hazard has decided to lower interest rates',
+                      'brennen houge has decided to lower interest rates',
+                      'brennen thinks es is going to zero',
+                      'little does he know he is wrong',
+                      'the pope has been assassinated',
+                      'warren buffet says equity markets are overvalued']
+    fake_headlines = news_pipeline(fake_headlines)
+    fake_headlines_binary = vectorizer.transform(fake_headlines).toarray()
+    print(clf.predict(fake_headlines_binary))
