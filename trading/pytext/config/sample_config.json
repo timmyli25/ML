@@ -1,0 +1,35 @@
+{
+  "config": {
+    "task": {
+      "DocClassificationTask": {
+        "features": {
+          "word_feat": {
+            "embed_dim": 100,
+            "pretrained_embeddings_path": "config/glove.6B.100d.txt"
+          }
+        },
+        "optimizer": {
+          "type": "adam",
+          "lr": "0.001"
+        },
+        "trainer": {
+          "epochs": 20
+        },
+        "featurizer": {
+          "SimpleFeaturizer": {}
+        },
+        "data_handler": {
+          "columns_to_read":[
+            "doc_label",
+            "text"
+          ],
+          "train_path": "train.tsv",
+          "eval_path": "test.tsv",
+          "test_path": "test.tsv"
+        }
+      }
+    },
+  "save_snapshot_path": "snapshots/ES_simple_model.p",
+  "export_caffe2_path": "model/ES_simple_model.c2"
+  }
+}
